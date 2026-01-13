@@ -73,7 +73,7 @@ unsigned __int64 add_user()
     - Kiểm tra user[idx] (idx : 0 -> 9) để khởi tạo
     - Malloc(0x68) vào idx chưa được khởi tạo -> size đã cố định => không có malloc unlimited size ở đây
     - Nhập dữ liệu vào các field Name & Address => không có heap overflow ở đây
-    - Cuối cùng chương trình cho phép nhập 0x100 bytes vào biến s sau đó sẽ gán user[idx]-_Bio = strdup(s)
+    - Cuối cùng chương trình cho phép nhập 0x100 bytes vào biến s sau đó sẽ gán user[idx]->Bio = strdup(s)
     - Strdup(s) sẽ ptr = malloc(size = strlen(s) + 1) & copy buffer s->ptr
 **Edit_bio()**
 
@@ -92,7 +92,7 @@ unsigned __int64 add_user()
 
 <img width="655" height="250" alt="image" src="https://github.com/user-attachments/assets/bfc18213-11c9-4b28-b0f2-41c381797f79" />
 
-    _ In các info hiện tại
+    - In các info hiện tại
 **Tổng kết :**
     - Ta có heap overflow -> Có thể overwrite fd của next chunk để tcache poisioning => Có thể đạt được AAW
 ### 3. Exploit
@@ -139,10 +139,11 @@ unsigned __int64 add_user()
         0x20  | User[C]->Bio
         0x70  | User[D]
         0x20  | User[D]->Bio
-    Nhưng do ta đã chunk size = 0x70 đã trong tcache nên khi malloc(0x68) nó chỉ lấy trong tcache nên các user[idx] sẽ nằm trước các user[idx]->Bio
+    Nhưng do ta đã free 7 user[idx] đầu tiên nên nó đã đi vào trong tcache 
+    Do đó khi malloc nó chỉ lấy trong tcache nên các user[idx] sẽ nằm sau đồng thời cách xa các user[idx]->Bio
     Và các User[idx]->Bio sẽ nằm liền kề nhau do cung lấy ra từ unsorted bin trước đó đã hợp nhất
     Nên ta có thể tcache poisioning dễ dàng hơn
-    Flow : Free(User[D]->Bio) -> Free(User[idx]-Bio) .Sau đó Overflow từ User[B]->Bio xuống fd của User[C]->Bio với target = _IO_list_all 
+    Flow : Free(User[D]->Bio) -> Free(User[C]->Bio).Sau đó Overflow từ User[B]->Bio xuống fd của User[C]->Bio với target = _IO_list_all 
     Malloc 2 lần để Sử dụng AAW overwrite _IO_list_all = User[A]->Bio
 
 **Payload:**
@@ -161,7 +162,7 @@ pld += p64(libc.sym.system) + p64(heap_base + 0xcf0 - 0x68)
         Do ở nhánh điều kiện if có Short-circuit Evaluation (đánh giá ngắn mạch). Ta cần cần điều kiện đầu tiên đúng để vào _IO_OVERFLOW
         Ta sẽ chọn nhánh đầu tiên trong toán tử || . Ta chỉ cần mode <= 0 && fp->_IO_write_ptr > fp->_IO_write_base để thỏa mãn điều kiện 1
         _Lock cần là 1 địa chỉ ghi được và phải bằng 1
-        Attack chain: Exit -> _run_exit_handler -> _IO_cleanup -> _IO_flush_all -> _IO_wfile_overflow -> _IO_wdoallocbuf -> system
+        Attack chain: Exit -> _run_exit_handler -> _IO_cleanup -> _IO_flush_all -> _IO_wfile_overflow (ban đầu là _IO_OVERFLOW)-> _IO_wdoallocbuf -> system
 
 [Script](./exploit.py)
     

@@ -107,17 +107,27 @@ unsigned __int64 add_user()
     - Dùng strdup(s) để malloc ra 7 chunk size 0x100 sau đó tiếp 3 chunk là A, B, C:
     - Sau đó free 7 chunk đầu tiên size = 0x100 để fill tcache
         Heap Structure:
-        0x20  | user[A]->Bio (overflow xuống để leak libc)s
+        0x20  | user[A]->Bio (overflow xuống để leak libc)
         0x70  | user[B]
         0x100 | user[B]->Bio (into unsorted bin)
         0x70  | user[C] (Ngăn Consolidation)
         0x100 | user[C]->Bio (into unsorted bin)
     Flow: Free(User[B]->Bio) -> Free(User[B]) -> Free(User[C]->Bio) 
-    Free(User[B]->Bio) thì nó đã gắn cho next chunk của prev_bit (prev_inuse) của next chunk = 0 
-    Khi Free(User[C]->Bio) thì sẽ kiểm tra các prev_bit của các chunk liền kể trước User[C]->Bio để quyết định hợp nhất
-    Nếu prev_bit = 1(Tức đang in use) thì sẽ không hợp nhất và ngược lại
-    Mục đích làm cho chunk User[B]->Bio hợp nhất lùi với User[B] và main arena được khi vào FD và BK của user[B]
-    Dễ dàng leak hơn khi không phải overflow dài và quan trọng không phải ghi đè lên nhiều dữ liệu quan trọng tránh crash chương trình
+    - Sau khi Free(User[B]) thì User[B] đã ở trong fastbins 
+    - Nếu ta free một chunk đủ điều kiện đi vào Unsorted bin và chunk đó nằm ngay bên cạch top chunk 
+    - Thì Fastbins sẽ thực hiện fastbins Consolidation để tránh phân mảnh bộ nhớ và xóa chunk đó khỏi fastbins
+    - Do đó user User[B] sẽ hợp nhất với unsorted bin ở trước nó là User[B]->Bio
+    - Và main arena được ghi vào FD và BK của user[B]
+    => Dễ dàng leak hơn khi không phải overflow dài và quan trọng không phải ghi đè lên nhiều dữ liệu quan trọng tránh crash chương trình
+    Sau khi leak xong ta cần ghi lại size của User[B] sau khi đã hợp nhất để tránh lỗi
+
+**Trước khi Free(User[C]->Bio) (User[B] đang ở fastbins) và sau khi Free(User[C]->Bio) (Xóa User[B] khỏi fastbins)**
+
+<img width="951" height="365" alt="image" src="https://github.com/user-attachments/assets/4290ce06-835f-4167-b7db-96792cc0cc50" />
+
+<img width="952" height="364" alt="image" src="https://github.com/user-attachments/assets/802d3355-38f0-4d09-b7a6-ca2f15fd65df" />
+
+  * 0x5585ca859da0 (User[B] đã hợp nhất với User[B]->Bio)
 
 **Stage 2: FSOP**
 
@@ -153,6 +163,6 @@ pld += p64(libc.sym.system) + p64(heap_base + 0xcf0 - 0x68)
         _Lock cần là 1 địa chỉ ghi được và phải bằng 1
         Attack chain: Exit -> _run_exit_handler -> _IO_cleanup -> _IO_flush_all -> _IO_wfile_overflow -> _IO_wdoallocbuf -> system
 
-
+[Script](./exploit.py)
     
     

@@ -1,0 +1,16 @@
+tcache: structure
+
+0x20 : ptr[A]->ptr_curent
+0x20 : ptr[A]
+0x20 : ptr[B]->ptr_curent
+0x20 : ptr[B]
+
+flow : A -> B -> ... (bảng Anpha)
+
+make_note(1, 50, b'A')
+	malloc(0x18) : ptr[B]->ptr
+	malloc(size != 0x18(0x20)) : ptr[C]
+
+make_note(2, 0x18, b'A')
+	malloc(0x18) : ptr[B]->ptr_curent
+	malloc(0x18) : ptr[A]

